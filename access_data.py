@@ -118,7 +118,7 @@ class ReadDataThread(threading.Thread):
                 print("Start put one data into the queue.")
 
                 row = [t, datapoint0, datapoint1, datapoint2, datapoint3]
-                with open('data_7_24.csv', mode='a', newline='') as file:
+                with open('data.csv', mode='a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerow(row)
 

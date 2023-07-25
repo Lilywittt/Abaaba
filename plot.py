@@ -41,6 +41,8 @@ class PlotThread(threading.Thread):
         self.time_queue = time_queue
         self.power_queue = power_queue
 
+        self.display_queue = self.data_queue_0  # 默认显示Ai0
+
         # 使用条件的线程同步
         self.condition = condition
 
@@ -66,13 +68,24 @@ class PlotThread(threading.Thread):
     # 更新图像，这里直接调用数据缓存队列和时间戳缓存队列
     def update_plot(self):
         print("Start update plot at", datetime.now(), "size=", len(self.time_queue))
-        self.line.set_data(self.time_queue, self.data_queue_3)  # 更新数据线条
+        self.line.set_data(self.time_queue, self.display_queue)  # 更新数据线条
         self.ax.relim()
         self.ax.autoscale_view()
         self.ax.set_xlim(left=self.time_queue[0], right=self.time_queue[-1])    # 更新x轴范围
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         print("Successfully updated plot at", datetime.now())
+
+    # 改变显示的队列编号，0~3
+    def change_display_queue(self, queue_id):
+        if queue_id == 0:
+            self.display_queue = self.data_queue_0
+        elif queue_id == 1:
+            self.display_queue = self.data_queue_1
+        elif queue_id == 2:
+            self.display_queue = self.data_queue_2
+        elif queue_id == 3:
+            self.display_queue = self.data_queue_3
 
 
 # 静态绘图

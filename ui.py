@@ -4,6 +4,7 @@
 import sys
 import time
 import threading
+import shutil
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -113,27 +114,48 @@ class DataAccessWindow(QWidget):
         self.plot_thread = PlotThread(data_queue_0=self.data_queue_0, data_queue_1=self.data_queue_1, data_queue_2=self.data_queue_2, data_queue_3=self.data_queue_3, time_queue=self.time_queue, power_queue=self.power_queue, condition=self.condition)
 
         # 垂直布局器layout
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
 
         # figure_canvas显示绘图线程中的绘图图形，并添加到布局中
-        figure_canvas = FigureCanvas(self.plot_thread.fig)
-        layout.addWidget(figure_canvas)
+        self.figure_canvas = FigureCanvas(self.plot_thread.fig)
+        self.layout.addWidget(self.figure_canvas)
 
         # 启动线程
         self.plot_thread.start()
 
         # 播放、暂停和退出按钮
-        play_button = QPushButton("播放")
-        play_button.clicked.connect(self.play_thread)
-        layout.addWidget(play_button)
+        self.play_button = QPushButton("播放")
+        self.play_button.clicked.connect(self.play_thread)
+        self.layout.addWidget(self.play_button)
 
-        pause_button = QPushButton("暂停")
-        pause_button.clicked.connect(self.pause_thread)
-        layout.addWidget(pause_button)
+        self.pause_button = QPushButton("暂停")
+        self.pause_button.clicked.connect(self.pause_thread)
+        self.layout.addWidget(self.pause_button)
 
-        exit_button = QPushButton("退出")
-        exit_button.clicked.connect(self.close)
-        layout.addWidget(exit_button)
+        self.exit_button = QPushButton("退出")
+        self.exit_button.clicked.connect(self.close)
+        self.layout.addWidget(self.exit_button)
+
+        # 切换数据按钮
+        self.btn_ai0 = QPushButton('Ai0')
+        self.btn_ai1 = QPushButton('Ai1')
+        self.btn_ai2 = QPushButton('Ai2')
+        self.btn_ai3 = QPushButton('Ai3')
+
+        # 连接到切换数据的对应方法
+        self.btn_ai0.clicked.connect(self.plot_thread.change_display_queue(0))
+        self.btn_ai1.clicked.connect(self.plot_thread.change_display_queue(1))
+        self.btn_ai2.clicked.connect(self.plot_thread.change_display_queue(2))
+        self.btn_ai3.clicked.connect(self.plot_thread.change_display_queue(3))
+
+        self.buttons_layout = QHBoxLayout()
+        self.buttons_layout.addWidget(self.btn_ai0)
+        self.buttons_layout.addWidget(self.btn_ai1)
+        self.buttons_layout.addWidget(self.btn_ai2)
+        self.buttons_layout.addWidget(self.btn_ai3)
+        self.buttons_layout.addWidget(self.btn_exit)
+
+        self.layout.addWidget(self.buttons_layout)
 
         # 将布局应用到窗口上
         self.setLayout(layout)
@@ -270,22 +292,13 @@ class StaticPlotWindow(QWidget):
 
         self.fig0_file, self.fig1_file, self.fig2_file, self.fig3_file, self.fig_power_file = StaticPlot(csv_file_path=self.csv_file_path)
 
-        # 创建控制按钮和返回主界面的按钮
+        # 创建控制按钮和返回主界面的按钮、将图像文件另存为按钮
         self.btn_exit = QPushButton('退出')
         self.btn_ai0 = QPushButton('Ai0')
         self.btn_ai1 = QPushButton('Ai1')
         self.btn_ai2 = QPushButton('Ai2')
         self.btn_ai3 = QPushButton('Ai3')
-
-        # 将按钮放入一个组
-        self.button_group = QGroupBox()
-        layout_buttons = QVBoxLayout()
-        layout_buttons.addWidget(self.btn_ai0)
-        layout_buttons.addWidget(self.btn_ai1)
-        layout_buttons.addWidget(self.btn_ai2)
-        layout_buttons.addWidget(self.btn_ai3)
-        layout_buttons.addWidget(self.btn_exit)
-        self.button_group.setLayout(layout_buttons)
+        self.btn_saveplot = QPushButton('将图像文件另存为')
 
         # 创建浏览器小窗
         self.browser0 = QWebEngineView()
@@ -305,10 +318,14 @@ class StaticPlotWindow(QWidget):
         self.btn_ai1.clicked.connect(self.show_ai1)
         self.btn_ai2.clicked.connect(self.show_ai2)
         self.btn_ai3.clicked.connect(self.show_ai3)
+        self.btn_saveplot.clicked.connect(self.saveplot)
 
         # QStackedLayout便于窗口变换
         self.main_layout = QStackedLayout()
         self.init_layouts()
+
+        # 当前显示窗口，0,1,2,3分别为Ai0,1,2,3
+        self.curr_window_id = 0
 
     # 初始化浏览器嵌入窗口
     def init_layouts(self):
@@ -318,31 +335,79 @@ class StaticPlotWindow(QWidget):
             layout.addWidget(getattr(self, f'browser{i}'))
             self.main_layout.addWidget(page)
 
-        buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.btn_ai0)
-        buttons_layout.addWidget(self.btn_ai1)
-        buttons_layout.addWidget(self.btn_ai2)
-        buttons_layout.addWidget(self.btn_ai3)
-        buttons_layout.addWidget(self.btn_exit)
+        self.buttons_layout = QHBoxLayout()
+        self.buttons_layout.addWidget(self.btn_ai0)
+        self.buttons_layout.addWidget(self.btn_ai1)
+        self.buttons_layout.addWidget(self.btn_ai2)
+        self.buttons_layout.addWidget(self.btn_ai3)
+        self.buttons_layout.addWidget(self.btn_exit)
+        self.buttons_layout.addWidget(self.btn_saveplot)
 
-        final_layout = QVBoxLayout()
-        final_layout.addLayout(self.main_layout)
-        final_layout.addLayout(buttons_layout)
+        self.final_layout = QVBoxLayout()
+        self.final_layout.addLayout(self.main_layout)
+        self.final_layout.addLayout(self.buttons_layout)
 
-        self.setLayout(final_layout)
+        self.setLayout(self.final_layout)
 
     # ai0~ai3的显示切换
     def show_ai0(self):
-        self.main_layout.setCurrentIndex(0)
+        self.curr_window_id = 0
+        self.main_layout.setCurrentIndex(self.curr_window_id)
 
     def show_ai1(self):
-        self.main_layout.setCurrentIndex(1)
+        self.curr_window_id = 1
+        self.main_layout.setCurrentIndex(self.curr_window_id)
 
     def show_ai2(self):
-        self.main_layout.setCurrentIndex(2)
+        self.curr_window_id = 2
+        self.main_layout.setCurrentIndex(self.curr_window_id)
 
     def show_ai3(self):
-        self.main_layout.setCurrentIndex(3)
+        self.curr_window_id = 3
+        self.main_layout.setCurrentIndex(self.curr_window_id)
+
+    # 将图像html文件另存为
+    def saveplot(self):
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(self, "另存为", "", "HTML Files (*.html)", options=options)
+        if fileName:
+            if self.curr_window_id == 0:
+                src_file_path = self.fig0_file  # 当前显示的html文件路径
+            elif self.curr_window_id == 1:
+                src_file_path = self.fig1_file
+            elif self.curr_window_id == 2:
+                src_file_path = self.fig2_file
+            elif self.curr_window_id == 3:
+                src_file_path = self.fig3_file
+
+            if not os.path.exists(src_file_path):
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("源文件不存在")
+                msg.setWindowTitle("错误")
+                msg.exec_()
+                return
+            if not os.access(os.path.dirname(fileName), os.W_OK):
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("目标位置不可写")
+                msg.setWindowTitle("错误")
+                msg.exec_()
+                return
+            try:
+                shutil.copy(src_file_path, fileName)  # 复制文件到指定的位置
+            except Exception as e:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setText("文件复制失败: " + str(e))
+                msg.setWindowTitle("错误")
+                msg.exec_()
+            else:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setText("文件另存为成功")
+                msg.setWindowTitle("成功")
+                msg.exec_()
 
     # 重写关闭方法
     def closeEvent(self, event):
