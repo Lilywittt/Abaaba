@@ -143,22 +143,24 @@ class DataAccessWindow(QWidget):
         self.btn_ai3 = QPushButton('Ai3')
 
         # 连接到切换数据的对应方法
-        self.btn_ai0.clicked.connect(self.plot_thread.change_display_queue(0))
-        self.btn_ai1.clicked.connect(self.plot_thread.change_display_queue(1))
-        self.btn_ai2.clicked.connect(self.plot_thread.change_display_queue(2))
-        self.btn_ai3.clicked.connect(self.plot_thread.change_display_queue(3))
+        self.btn_ai0.clicked.connect(lambda : self.plot_thread.change_display_queue(0))
+        self.btn_ai1.clicked.connect(lambda : self.plot_thread.change_display_queue(1))
+        self.btn_ai2.clicked.connect(lambda : self.plot_thread.change_display_queue(2))
+        self.btn_ai3.clicked.connect(lambda : self.plot_thread.change_display_queue(3))
 
         self.buttons_layout = QHBoxLayout()
         self.buttons_layout.addWidget(self.btn_ai0)
         self.buttons_layout.addWidget(self.btn_ai1)
         self.buttons_layout.addWidget(self.btn_ai2)
         self.buttons_layout.addWidget(self.btn_ai3)
-        self.buttons_layout.addWidget(self.btn_exit)
 
-        self.layout.addWidget(self.buttons_layout)
+        self.buttons_widget = QWidget()
+        self.buttons_widget.setLayout(self.buttons_layout)
+
+        self.layout.addWidget(self.buttons_widget)
 
         # 将布局应用到窗口上
-        self.setLayout(layout)
+        self.setLayout(self.layout)
 
     # 播放
     def play_thread(self):
