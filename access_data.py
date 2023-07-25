@@ -23,7 +23,7 @@ TrigOpen = ctypes.c_char(1) # 软件触发开
 TrigClose = ctypes.c_char(0)    # 软件触发关
 Num = ctypes.c_ulong(1)   # 执行一次getai获取的点数（每通道）
 Channel = ctypes.c_ushort(0x000f)    # 通道数
-samplerate = ctypes.c_uint(400) # 采样率，个数据每秒（所有通道加起来）
+samplerate = ctypes.c_uint(210) # 采样率，个数据每秒（所有通道加起来）
 timeout = ctypes.c_long(400) # 超时时间 以ms为单位
 
 

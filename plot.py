@@ -50,7 +50,7 @@ class PlotThread(threading.Thread):
         print("Successfully initalized PlotThread.")
 
     def run(self):
-        print("Enter PlotThread.run.")
+        # print("Enter PlotThread.run.")
         while self.running:
             with self.condition:
                 self.condition.wait()
@@ -67,7 +67,7 @@ class PlotThread(threading.Thread):
 
     # 更新图像，这里直接调用数据缓存队列和时间戳缓存队列
     def update_plot(self):
-        print("Start update plot at", datetime.now(), "size=", len(self.time_queue))
+        # print("Start update plot at", datetime.now(), "size=", len(self.time_queue))
         self.line.set_data(self.time_queue, self.display_queue)  # 更新数据线条
         self.ax.relim()
         self.ax.autoscale_view()
