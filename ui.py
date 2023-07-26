@@ -16,6 +16,7 @@ from matplotlib.figure import Figure
 
 from plot import *
 from access_data import *
+from filter import *
 
 from datetime import datetime
 from collections import deque
@@ -28,21 +29,25 @@ class MainUIWindow(QWidget):
         self.setWindowTitle("Data Accessor App")
         self.setGeometry(600, 300, 400, 300)
 
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
 
         self.data_access_button = QPushButton("数据可视化采集")
         self.data_access_button.clicked.connect(self.open_data_access_window)
-        layout.addWidget(self.data_access_button)
+        self.layout.addWidget(self.data_access_button)
 
         self.static_plot_button = QPushButton("数据静态分析")
         self.static_plot_button.clicked.connect(self.open_data_select_window)
-        layout.addWidget(self.static_plot_button)
+        self.layout.addWidget(self.static_plot_button)
+
+        self.data_filter_button = QPushButton("数据降噪处理")
+        self.data_filter_button.clicked.connect(self.open_data_filter_window)
+        self.layout.addWidget(self.data_filter_button)
 
         self.exit_app_button = QPushButton("退出程序")
         self.exit_app_button.clicked.connect(self.close)
-        layout.addWidget(self.exit_app_button)
+        self.layout.addWidget(self.exit_app_button)
 
-        self.setLayout(layout)
+        self.setLayout(self.layout)
 
     # 打开数据实时可视化采集窗口
     def open_data_access_window(self):
@@ -77,6 +82,12 @@ class MainUIWindow(QWidget):
     def open_data_select_window(self):
         self.data_select_window = DataSelectWindow(former_window=self)
         self.data_select_window.show()
+        self.hide()
+
+    # 打开数据降噪窗口
+    def open_data_filter_window(self):
+        self.data_filter_window = DataFilterWindow(former_window=self)
+        self.data_filter_window.show()
         self.hide()
 
     def closeEvent(self, event):
@@ -172,6 +183,24 @@ class DataAccessWindow(QWidget):
     def pause_thread(self):
         self.plot_thread.running = False
 
+    # 退出时，询问是否将本次采集到的数据保存到csv文件
+    def ask_save_csv(self):
+        reply = QMessageBox.question(self, '保存数据', '是否将本次采集的数据保存为csv文件？',
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+
+        if reply == QMessageBox.Yes:
+            options = QFileDialog.Options()
+            fileName, _ = QFileDialog.getSaveFileName(self, "保存文件", "", "CSV Files (*.csv)", options=options)
+            if fileName:
+                os.rename("data.csv", fileName)
+                QMessageBox.information(self, '成功', '数据已成功保存。')
+        else:
+            reply2 = QMessageBox.question(self, '确认', '确定不保存吗？',
+                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            if reply2 == QMessageBox.Yes:
+                QMessageBox.information(self, '注意',
+                                        '您已确定不保存数据，若您后悔了，只要没有开始过下一次采集，就还可以在应用目录下的data.csv中找到它。')
+
     # 重写关闭窗口的方法
     def closeEvent(self, event):
         exit_dialog = ExitDialog()
@@ -182,6 +211,10 @@ class DataAccessWindow(QWidget):
             self.plot_thread.stop()
             self.data_source.stop()
 
+            # 询问是否将本次采集的数据另存为csv文件
+            self.ask_save_csv()
+
+            # 关闭窗口，打开前一个窗口
             self.former_window.show()
             event.accept()
 
@@ -410,6 +443,73 @@ class StaticPlotWindow(QWidget):
                 msg.setText("文件另存为成功")
                 msg.setWindowTitle("成功")
                 msg.exec_()
+
+    # 重写关闭方法
+    def closeEvent(self, event):
+        exit_dialog = ExitDialog()
+        result = exit_dialog.exec()
+        if result == QMessageBox.Yes:
+            self.former_window.show()
+            event.accept()
+        else:
+            event.ignore()
+
+
+# 数据降噪窗口
+class DataFilterWindow(QWidget):
+    def __init__(self, former_window):
+        super().__init__()
+        self.setWindowTitle("数据降噪处理")
+
+        self.former_window = former_window
+        self.file_src_path = None
+        self.file_dest_path = None
+
+        self.file_src_label = QLabel()
+        self.file_dest_label = QLabel()
+
+        self.file_src_btn = QPushButton("选择csv文件来源", self)
+        self.file_src_btn.clicked.connect(self.file_src_dialog)
+
+        self.file_dest_btn = QPushButton("选择输出文件路径", self)
+        self.file_dest_btn.clicked.connect(self.file_dest_dialog)
+
+        self.filter_btn = QPushButton("降噪处理并输出文件", self)
+        self.filter_btn.clicked.connect(self.filter_data)
+
+        self.exit_btn = QPushButton("退出", self)
+        self.exit_btn.clicked.connect(self.close)
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.file_src_btn)
+        self.layout.addWidget(self.file_src_label)
+        self.layout.addWidget(self.file_dest_btn)
+        self.layout.addWidget(self.file_dest_label)
+        self.layout.addWidget(self.filter_btn)
+        self.layout.addWidget(self.exit_btn)
+        self.setLayout(self.layout)
+
+    def file_src_dialog(self):
+        self.file_src_path, _ = QFileDialog.getOpenFileName(self, "选择csv文件来源", filter="CSV (*.csv)")
+        if self.file_src_path:
+            self.file_src_label.setText(f'csv文件来源:{self.file_src_path}')
+
+    def file_dest_dialog(self):
+        self.file_dest_path, _ = QFileDialog.getSaveFileName(self, "选择输出文件路径", filter="CSV (*.csv)")
+        if self.file_dest_path:
+            self.file_dest_label.setText(f'输出文件路径:{self.file_dest_path}')
+
+    # 数据降噪并保存
+    def filter_data(self):
+        if not self.file_src_path or not self.file_dest_path:
+            QMessageBox.information(self, "警告", "请先选择csv文件来源和输出文件路径")
+        else:
+            try:
+                trim_mean_filter(csv_src_path=self.file_src_path, csv_dest_path=self.file_dest_path)
+                QMessageBox.information(self, "成功", "降噪数据已成功保存至你选定的路径")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"错误:{str(e)}")
+
 
     # 重写关闭方法
     def closeEvent(self, event):

@@ -90,8 +90,10 @@ class PlotThread(threading.Thread):
 
 # 静态绘图
 def StaticPlot(csv_file_path):
+    # 将数据从csv文件读到dask.dataframe框架
     df = dd.read_csv(csv_file_path, dtype={'Ai0': 'float64', 'Ai1': 'float64', 'Ai2': 'float64', 'Ai3': 'float64'})
 
+    # 将每一列数据获取为dask.series
     x_data = df['timestamp']
     y_data0 = df['Ai0']
     y_data1 = df['Ai1']
@@ -106,6 +108,7 @@ def StaticPlot(csv_file_path):
 
     power_data = y_data3 * (y_data0 + y_data1 + y_data2)
 
+    # 对原始数据绘图
     fig0 = go.Figure(data=go.Scatter(x=x_data, y=y_data0, mode='lines'), layout_title_text='Ai0')
     fig1 = go.Figure(data=go.Scatter(x=x_data, y=y_data1, mode='lines'), layout_title_text='Ai1')
     fig2 = go.Figure(data=go.Scatter(x=x_data, y=y_data2, mode='lines'), layout_title_text='Ai2')
@@ -118,12 +121,14 @@ def StaticPlot(csv_file_path):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
+    # 创建html文件
     fig0_file = os.path.join(output_folder, 'fig0.html')
     fig1_file = os.path.join(output_folder, 'fig1.html')
     fig2_file = os.path.join(output_folder, 'fig2.html')
     fig3_file = os.path.join(output_folder, 'fig3.html')
     fig_power_file = os.path.join(output_folder, 'fig_power.html')
 
+    # 将原始数据的图像写入到html文件
     fig0.write_html(fig0_file)
     fig1.write_html(fig1_file)
     fig2.write_html(fig2_file)

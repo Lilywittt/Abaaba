@@ -109,11 +109,11 @@ class ReadDataThread(threading.Thread):
 
                 # #数据存放规则为前100个数据是Ai0通道；接下来100个数据是Ai1通道；接下来100个数据是Ai2通道；
                 # 此处会添加进行计算的部分
-                datapoint0 = Ai[0] * 25
-                datapoint1 = Ai[1] * 25
-                datapoint2 = Ai[2] * 25
-                datapoint3 = Ai[3] * 90
-                power_data = 2250 * Ai[3] * (Ai[0] + Ai[1] + Ai[2])
+                datapoint0 = Ai[0] * 10
+                datapoint1 = Ai[1] * 10
+                datapoint2 = Ai[2] * 10
+                datapoint3 = Ai[3] * 60
+                power_data = 600 * Ai[3] * (Ai[0] + Ai[1] + Ai[2])
                 t = datetime.now()
                 print("Start put one data into the queue.")
 
